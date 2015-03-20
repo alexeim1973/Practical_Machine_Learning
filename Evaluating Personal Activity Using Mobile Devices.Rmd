@@ -1,0 +1,77 @@
+---
+title: "Evaluating Personal Activity Using Mobile Devices"
+output: html_document
+---
+Project work for Practical Machine Learning class on Coursera
+
+Author - Alexei Monastyrnyi
+
+## Background
+
+Using gadgets such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+## Load the data
+
+The training data for this project are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+We have placed training and testing data in the working directory.
+
+```{r}
+traindataread <- read.csv(file = "pml-training.csv", na.strings=c("", "NA", "NULL"))
+testdataread <- read.csv(file = "pml-testing.csv", na.strings=c("", "NA", "NULL"))
+```
+
+## Set up environment
+
+We set the seed to make sure our results are reproducible. We use Caret and RandomForest packages to build the models and predict.
+
+```{r}
+set.seed(31415926)
+library(caret)
+library(randomForest)
+```
+
+## Normalise the data
+
+While exploring the data it was discovered that there is a fair amount of incomplete data. Building predictions on incomplete data usually shows poor results, so we remove any incomplete observations ffrom both training and test data sets.
+
+We also filter the data so that only columns relevant to this research are present in data sets. This speeds up calculations significantly, without compromising results obtained.
+
+```{r}
+traindataread_subset <- data.frame(traindataread[,8:11], traindataread[,37:49], traindataread[,60:68], traindataread[,84:86], total_accel_dumbbell=traindataread[,102], traindataread[,113:124], traindataread[,151:160])
+inTrain <- createDataPartition(y=traindataread_subset$classe, p=0.7, list=FALSE)
+traindata <- traindataread_subset[inTrain,]
+traindata <- na.omit(traindata)
+testdata <- data.frame(testdataread[,8:11], testdataread[,37:49], testdataread[,60:68], testdataread[,84:86], total_accel_dumbbell=testdataread[,102], testdataread[,113:124], testdataread[,151:160])
+testdata <- na.omit(testdata)
+```
+
+## Build and train the model
+
+We use random forest algorithm to build and train our model.
+
+```{r}
+modelFit <- randomForest(classe ~., data=traindata, do.trace=10)
+modelFit
+```
+
+## Model evaluation
+
+Out of sample error rate is estimated to be 0.5%.
+
+## Make predictions on test data set
+
+Once the model is trained, we can test its accuracy using test data set and make predictions.
+
+```{r}
+prediction <- predict(modelFit, testdata)
+## confusionMatrix(prediction,testdata$type)
+prediction
+```
+
